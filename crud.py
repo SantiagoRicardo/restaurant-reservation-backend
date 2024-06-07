@@ -1,31 +1,47 @@
-from sqlalchemy.orm import Session
-import models, schemas
+# crud.py
 
-def get_reservations(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.Reservation).offset(skip).limit(limit).all()
+import mysql.connector
+from database import connectMySQL  # Importamos la conexión desde database.py
 
-def get_reservation(db: Session, reservation_id: int):
-    return db.query(models.Reservation).filter(models.Reservation.id == reservation_id).first()
+def get_reservation(reservation_id: int):
+    cursor = connectMySQL.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM reservations WHERE id = %s", (reservation_id,))
+    reservation = cursor.fetchone()
+    cursor.close()
+    return reservation
 
-def create_reservation(db: Session, reservation: schemas.ReservationCreate):
-    db_reservation = models.Reservation(**reservation.dict())
-    db.add(db_reservation)
-    db.commit()
-    db.refresh(db_reservation)
-    return db_reservation
+def get_reservations(skip: int = 0, limit: int = 10):
+    cursor = connectMySQL.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM reservations LIMIT %s OFFSET %s", (limit, skip))
+    reservations = cursor.fetchall()
+    cursor.close()
+    return reservations
 
-def update_reservation(db: Session, reservation_id: int, reservation: schemas.ReservationCreate):
-    db_reservation = get_reservation(db, reservation_id)
-    if db_reservation:
-        for key, value in reservation.dict().items():
-            setattr(db_reservation, key, value)
-        db.commit()
-        db.refresh(db_reservation)
-    return db_reservation
+def create_reservation(reservation_data):
+    cursor = connectMySQL.cursor()
+    cursor.execute(
+        "INSERT INTO reservations (customer_name, number_of_people, reservation_datetime, status) VALUES (%s, %s, %s, %s)",
+        (reservation_data['customer_name'], reservation_data['number_of_people'], reservation_data['reservation_datetime'], reservation_data['status'])
+    )
+    connectMySQL.commit()
+    new_id = cursor.lastrowid
+    cursor.close()
+    return get_reservation(new_id)
 
-def delete_reservation(db: Session, reservation_id: int):
-    db_reservation = get_reservation(db, reservation_id)
-    if db_reservation:
-        db.delete(db_reservation)
-        db.commit()
-    return db_reservation
+def update_reservation(reservation_id: int, reservation_data):
+    cursor = connectMySQL.cursor()
+    cursor.execute(
+        "UPDATE reservations SET customer_name=%s, number_of_people=%s, reservation_datetime=%s, status=%s WHERE id=%s",
+        (reservation_data['customer_name'], reservation_data['number_of_people'], reservation_data['reservation_datetime'], reservation_data['status'], reservation_id)
+    )
+    connectMySQL.commit()
+    cursor.close()
+    return get_reservation(reservation_id)
+
+def delete_reservation(reservation_id: int):
+    cursor = connectMySQL.cursor()
+    cursor.execute("DELETE FROM reservations WHERE id = %s", (reservation_id,))
+    connectMySQL.commit()
+    rows_affected = cursor.rowcount
+    cursor.close()
+    return rows_affected > 0

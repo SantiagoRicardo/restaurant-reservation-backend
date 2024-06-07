@@ -1,46 +1,45 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
-import models, schemas, crud
-from database import SessionLocal, engine
-
-models.Base.metadata.create_all(bind=engine)
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import crud
+from schemas import ReservationCreate, Reservation
 
 app = FastAPI()
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Configuración de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"],  
+)
 
-@app.post("/reservations/", response_model=schemas.Reservation)
-def create_reservation(reservation: schemas.ReservationCreate, db: Session = Depends(get_db)):
-    return crud.create_reservation(db=db, reservation=reservation)
+@app.post("/reservations/", response_model=Reservation)
+def create_reservation_endpoint(reservation: ReservationCreate):
+    return crud.create_reservation(reservation.model_dump())
 
-@app.get("/reservations/", response_model=list[schemas.Reservation])
-def read_reservations(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    reservations = crud.get_reservations(db, skip=skip, limit=limit)
-    return reservations
-
-@app.get("/reservations/{reservation_id}", response_model=schemas.Reservation)
-def read_reservation(reservation_id: int, db: Session = Depends(get_db)):
-    reservation = crud.get_reservation(db, reservation_id=reservation_id)
+@app.get("/reservations/{reservation_id}", response_model=Reservation)
+def read_reservation_endpoint(reservation_id: int):
+    reservation = crud.get_reservation(reservation_id)
     if reservation is None:
         raise HTTPException(status_code=404, detail="Reservation not found")
     return reservation
 
-@app.put("/reservations/{reservation_id}", response_model=schemas.Reservation)
-def update_reservation(reservation_id: int, reservation: schemas.ReservationCreate, db: Session = Depends(get_db)):
-    db_reservation = crud.update_reservation(db, reservation_id=reservation_id, reservation=reservation)
-    if db_reservation is None:
-        raise HTTPException(status_code=404, detail="Reservation not found")
-    return db_reservation
+@app.get("/reservations/", response_model=list[Reservation])
+def read_reservations_endpoint(skip: int = 0, limit: int = 10):
+    reservations = crud.get_reservations(skip=skip, limit=limit)
+    return reservations
 
-@app.delete("/reservations/{reservation_id}", response_model=schemas.Reservation)
-def delete_reservation(reservation_id: int, db: Session = Depends(get_db)):
-    db_reservation = crud.delete_reservation(db, reservation_id=reservation_id)
-    if db_reservation is None:
+@app.put("/reservations/{reservation_id}", response_model=Reservation)
+def update_reservation_endpoint(reservation_id: int, reservation: ReservationCreate):
+    updated_reservation = crud.update_reservation(reservation_id, reservation.model_dump())
+    if updated_reservation is None:
         raise HTTPException(status_code=404, detail="Reservation not found")
-    return db_reservation
+    return updated_reservation
+
+@app.delete("/reservations/{reservation_id}")
+def delete_reservation_endpoint(reservation_id: int):
+    reservation = crud.delete_reservation(reservation_id)
+    if reservation is None:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    return reservation
