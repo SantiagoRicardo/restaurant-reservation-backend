@@ -73,7 +73,7 @@ los puede encontrar en worbench:
 
 ## Ejecución del Proyecto
 
-Con el entorno virtual activado y las dependencias instaladas, iniciamos la aplicación:
+Con el entorno virtual activado y las dependencias instaladas, iniciamos la aplicación desde la raiz de `/App`:
 
 `uvicorn app.main:app --reload`
 
