@@ -1,7 +1,4 @@
-# crud.py
-
-import mysql.connector
-from database import connectMySQL  # Importamos la conexión desde database.py
+from database import connectMySQL
 
 def get_reservation(reservation_id: int):
     cursor = connectMySQL.cursor(dictionary=True)
