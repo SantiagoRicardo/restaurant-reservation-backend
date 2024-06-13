@@ -13,6 +13,10 @@ class UserCreate(BaseModel):
     password: str
     rol: str
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
 class ReservationBase(BaseModel):
     customer_name: str
     number_of_people: int
@@ -29,4 +33,4 @@ class Reservation(ReservationBase):
     id_reservation: str
 
     class Config:
-        orm_mode = True
+        from_atributes = True
