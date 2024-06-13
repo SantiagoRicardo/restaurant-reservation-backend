@@ -1,4 +1,3 @@
-import uuid
 from database import connectMySQL
 
 def calculate_total_cost(age):
@@ -34,18 +33,13 @@ def create_reservation(reservation_data):
     cursor = connectMySQL.cursor(dictionary=True)
     
     try:
-        # Verificar si ya existe una reserva para la misma fecha y hora
         cursor.execute(
             "SELECT * FROM reservations WHERE reservation_datetime = %s AND status = 'active'",
             (reservation_data['reservation_datetime'],)
         )
-        existing_reservation = cursor.fetchall()  # Usar fetchall() para consumir todos los resultados
-        
-        # Si ya existe una reserva, no crear una nueva y devolver un mensaje o error
+        existing_reservation = cursor.fetchall()
         if existing_reservation:
             return {"error": "Ya existe una reserva para esta fecha y hora."}
-        
-        # Si no existe, proceder con la creación de la nueva reserva
         total_cost = calculate_total_cost(reservation_data['age'])
         cursor.execute(
             "INSERT INTO reservations (customer_name, number_of_people, reservation_datetime, status, age, total_cost) VALUES (%s, %s, %s, %s, %s, %s)",
@@ -61,7 +55,7 @@ def create_reservation(reservation_data):
         connectMySQL.commit()
         
     finally:
-        cursor.close()  # Asegurarse de cerrar el cursor en un bloque finally
+        cursor.close()
     
     return get_reservation(new_id)
 
