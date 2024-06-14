@@ -19,10 +19,9 @@ class Token(BaseModel):
 
 class ReservationBase(BaseModel):
     customer_name: str
-    number_of_people: int
     reservation_datetime: datetime
     age: int
-    status: str = "active"
+    status: str = "activa"
 
 class ReservationCreate(ReservationBase):
     pass
@@ -33,4 +32,4 @@ class Reservation(ReservationBase):
     id_reservation: str
 
     class Config:
-        from_atributes = True
+        orm_mode = True

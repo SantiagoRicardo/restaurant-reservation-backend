@@ -8,7 +8,6 @@ from schemas import ReservationCreate, Reservation, UserCreate, User
 from datetime import datetime, timedelta
 from typing import List
 
-# Configuración
 SECRET_KEY = "svddfd$%sdc51856"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
@@ -57,7 +56,7 @@ def authenticate_user(email: str, password: str):
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="No se pudieron validar las credenciales",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
@@ -73,7 +72,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    if current_user.rol == "cliente":
+    if current_user['rol'] == "cliente":
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
@@ -100,7 +99,7 @@ async def create_user(user: UserCreate):
 
 @app.post("/reservations/", response_model=Reservation)
 def create_reservation_endpoint(reservation: ReservationCreate):
-    result = crud.create_reservation(reservation.model_dump())
+    result = crud.create_reservation(reservation.dict())
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
@@ -109,7 +108,7 @@ def create_reservation_endpoint(reservation: ReservationCreate):
 def read_reservation_endpoint(reservation_id: int):
     reservation = crud.get_reservation(reservation_id)
     if reservation is None:
-        raise HTTPException(status_code=404, detail="Reservation not found")
+        raise HTTPException(status_code=404, detail="Reservación no encontrada")
     return reservation
 
 @app.get("/reservations/", response_model=List[Reservation])
@@ -119,18 +118,22 @@ def read_reservations_endpoint(skip: int = 0, limit: int = 10):
 
 @app.put("/reservations/{reservation_id}", response_model=Reservation)
 def update_reservation_endpoint(reservation_id: int, reservation: ReservationCreate, current_user: User = Depends(get_current_active_user)):
-    if current_user.rol not in ["gerente", "empleado"]:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-    updated_reservation = crud.update_reservation(reservation_id, reservation.dict())
+    if current_user['rol'] not in ["gerente", "empleado"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para actualizar")
+    reservation_data = reservation.dict()
+    updated_reservation = crud.update_reservation(reservation_id, reservation_data)
     if updated_reservation is None:
-        raise HTTPException(status_code=404, detail="Reservation not found")
+        raise HTTPException(status_code=404, detail="Reservación no encontrada")
     return updated_reservation
 
-@app.delete("/reservations/{reservation_id}")
+
+@app.delete("/reservations/{reservation_id}", response_model=Reservation)
 def delete_reservation_endpoint(reservation_id: int, current_user: User = Depends(get_current_active_user)):
-    if current_user.rol != "gerente":
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-    reservation = crud.delete_reservation(reservation_id)
-    if reservation is None:
-        raise HTTPException(status_code=404, detail="Reservation not found")
-    return reservation
+    if current_user['rol'] != "gerente":
+        raise HTTPException(status_code=403, detail="Acceso denegado. Solo el gerente puede eliminar reservaciones.")
+    deleted_reservation = crud.delete_reservation(reservation_id)
+    if deleted_reservation is None:
+        raise HTTPException(status_code=404, detail="Reservación no encontrada")
+    return deleted_reservation
+
+

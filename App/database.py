@@ -4,7 +4,6 @@ import mysql.connector
 
 load_dotenv()
 
-# Configuración de la base de datos usando variables de entorno
 host = os.getenv('MYSQL_HOST')
 user = os.getenv('MYSQL_USER')
 password = os.getenv('MYSQL_PASSWORD')
